@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExerciseCategory {
+  CARDIO
+  STRENGTH
+  FLEXIBILITY
+  BALANCE
+  SPORTS
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  LEGS
+  ARMS
+  SHOULDERS
+  CORE
+  FULL_BODY
+  CARDIO
+}
+
+enum WorkoutStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workoutPlans      WorkoutPlan[]
+  scheduledWorkouts ScheduledWorkout[]
+  workoutLogs       WorkoutLog[]
+
+  @@map("users")
+}
+
+model Exercise {
+  id          String           @id @default(uuid())
+  name        String
+  description String?
+  category    ExerciseCategory
+  muscleGroup MuscleGroup
+  createdAt   DateTime         @default(now())
+
+  workoutPlanExercises WorkoutPlanExercise[]
+  exerciseLogs         ExerciseLog[]
+
+  @@map("exercises")
+}
+
+model WorkoutPlan {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutPlanExercises WorkoutPlanExercise[]
+  scheduledWorkouts    ScheduledWorkout[]
+  workoutLogs          WorkoutLog[]
+
+  @@map("workout_plans")
+}
+
+model WorkoutPlanExercise {
+  id            String  @id @default(uuid())
+  workoutPlanId String
+  exerciseId    String
+  sets          Int
+  reps          Int?
+  weight        Float?
+  duration      Int?
+  order         Int
+  notes         String?
+
+  workoutPlan WorkoutPlan @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  exercise    Exercise    @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("workout_plan_exercises")
+}
+
+model ScheduledWorkout {
+  id            String        @id @default(uuid())
+  userId        String
+  workoutPlanId String
+  scheduledDate DateTime
+  scheduledTime String
+  status        WorkoutStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workoutPlan WorkoutPlan  @relation(fields: [workoutPlanId], references: [id], onDelete: Cascade)
+  workoutLogs WorkoutLog[]
+
+  @@map("scheduled_workouts")
+}
+
+model WorkoutLog {
+  id                 String   @id @default(uuid())
+  userId             String
+  scheduledWorkoutId String?
+  workoutPlanId      String?
+  completedAt        DateTime
+  duration           Int?
+  notes              String?
+  createdAt          DateTime @default(now())
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scheduledWorkout ScheduledWorkout? @relation(fields: [scheduledWorkoutId], references: [id], onDelete: SetNull)
+  workoutPlan      WorkoutPlan?      @relation(fields: [workoutPlanId], references: [id], onDelete: SetNull)
+  exerciseLogs     ExerciseLog[]
+
+  @@map("workout_logs")
+}
+
+model ExerciseLog {
+  id           String  @id @default(uuid())
+  workoutLogId String
+  exerciseId   String
+  sets         Int
+  reps         Int?
+  weight       Float?
+  duration     Int?
+  notes        String?
+
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@map("exercise_logs")
+}
