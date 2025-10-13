@@ -100,3 +100,49 @@ export const createWorkoutPlan = async (req, res) => {
     });
   }
 };
+
+export const getWorkoutPlans = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const workoutPlans = await prisma.workoutPlan.findMany({
+      where: {
+        userId,
+      },
+      include: {
+        workoutPlanExercises: {
+          include: {
+            exercise: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                muscleGroup: true,
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workoutPlans,
+        count: workoutPlans.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get all workout plans error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};

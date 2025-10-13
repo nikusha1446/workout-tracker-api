@@ -1,9 +1,14 @@
 import express from 'express';
-import { createWorkoutPlan } from '../controllers/workoutController.js';
+import {
+  createWorkoutPlan,
+  getWorkoutPlans,
+} from '../controllers/workoutController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
+router.use(authenticate);
 
-router.post('/', authenticate, createWorkoutPlan);
+router.post('/', createWorkoutPlan);
+router.get('/', getWorkoutPlans);
 
 export default router;
