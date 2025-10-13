@@ -146,3 +146,55 @@ export const getWorkoutPlans = async (req, res) => {
     });
   }
 };
+
+export const getWorkoutPlanbyId = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const workoutPlan = await prisma.workoutPlan.findUnique({
+      where: {
+        id,
+        userId,
+      },
+      include: {
+        workoutPlanExercises: {
+          include: {
+            exercise: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                category: true,
+                muscleGroup: true,
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!workoutPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workout plan not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workoutPlan,
+      },
+    });
+  } catch (error) {
+    console.error('Get workout plan by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
