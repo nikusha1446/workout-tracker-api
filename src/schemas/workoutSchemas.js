@@ -61,3 +61,38 @@ export const createWorkoutPlanSchema = z
       path: ['exercises'],
     }
   );
+
+export const updateWorkoutPlanSchema = z
+  .object({
+    name: z
+      .string()
+      .min(3, 'Name must be at least 3 characters long')
+      .max(100, 'Name must not exceed 100 characters')
+      .trim()
+      .optional(),
+
+    description: z
+      .string()
+      .max(500, 'Description must not exceed 500 characters')
+      .trim()
+      .optional()
+      .nullable(),
+
+    exercises: z
+      .array(workoutPlanExerciseSchema)
+      .min(1, 'At least one exercise is required')
+      .max(20, 'Maximum 20 exercises per workout plan')
+      .optional(),
+  })
+  .refine(
+    (data) => {
+      if (!data.exercises) return true;
+      const orders = data.exercises.map((ex) => ex.order);
+      const uniqueOrders = new Set(orders);
+      return orders.length === uniqueOrders.size;
+    },
+    {
+      message: 'Each exercise must have a unique order number',
+      path: ['exercises'],
+    }
+  );
