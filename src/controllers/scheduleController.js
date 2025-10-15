@@ -70,7 +70,7 @@ export const createScheduleWorkout = async (req, res) => {
   }
 };
 
-export const getScheduledWorkout = async (req, res) => {
+export const getScheduledWorkouts = async (req, res) => {
   try {
     const userId = req.user.id;
     const { status, startDate, endDate } = req.query;
@@ -119,6 +119,62 @@ export const getScheduledWorkout = async (req, res) => {
     });
   } catch (error) {
     console.error('Get scheduled workouts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const getScheduledWorkoutById = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const scheduledWorkoutPlan = await prisma.scheduledWorkout.findFirst({
+      where: {
+        id,
+        userId,
+      },
+      include: {
+        workoutPlan: {
+          include: {
+            workoutPlanExercises: {
+              include: {
+                exercise: {
+                  select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    category: true,
+                    muscleGroup: true,
+                  },
+                },
+              },
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!scheduledWorkoutPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scheduled workout not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        scheduledWorkoutPlan,
+      },
+    });
+  } catch (error) {
+    console.error('Get scheduled workout by ID error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
