@@ -261,3 +261,43 @@ export const updateScheduledWorkout = async (req, res) => {
     });
   }
 };
+
+export const deleteScheduledWorkout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const existingScheduledWorkoutPlan =
+      await prisma.scheduledWorkout.findFirst({
+        where: {
+          userId,
+          id,
+        },
+      });
+
+    if (!existingScheduledWorkoutPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scheduled workout not found',
+      });
+    }
+
+    await prisma.scheduledWorkout.delete({
+      where: {
+        id,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Scheduled workout deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete scheduled workout error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};

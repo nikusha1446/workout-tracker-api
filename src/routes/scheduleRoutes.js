@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createScheduledWorkout,
+  deleteScheduledWorkout,
   getScheduledWorkoutById,
   getScheduledWorkouts,
   updateScheduledWorkout,
@@ -14,5 +15,6 @@ router.post('/', createScheduledWorkout);
 router.get('/', getScheduledWorkouts);
 router.get('/:id', getScheduledWorkoutById);
 router.put('/:id', updateScheduledWorkout);
+router.delete('/:id', deleteScheduledWorkout);
 
 export default router;
