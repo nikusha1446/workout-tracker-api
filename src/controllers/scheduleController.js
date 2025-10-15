@@ -69,3 +69,59 @@ export const createScheduleWorkout = async (req, res) => {
     });
   }
 };
+
+export const getScheduledWorkout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { status, startDate, endDate } = req.query;
+
+    const where = {
+      userId,
+    };
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (startDate || endDate) {
+      where.scheduledDate = {};
+
+      if (startDate) {
+        where.scheduledDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.scheduledDate.lte = new Date(endDate);
+      }
+    }
+
+    const scheduledWorkoutPlans = await prisma.scheduledWorkout.findMany({
+      where,
+      include: {
+        workoutPlan: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: {
+        scheduledDate: 'asc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        scheduledWorkoutPlans,
+        count: scheduledWorkoutPlans.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get scheduled workouts error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
