@@ -1,0 +1,71 @@
+import { ZodError } from 'zod';
+import prisma from '../config/prisma.js';
+import { createScheduleWorkoutSchema } from '../schemas/scheduleSchemas.js';
+
+export const createScheduleWorkout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const validatedData = createScheduleWorkoutSchema.parse(req.body);
+    const { workoutPlanId, scheduledDate, scheduledTime } = validatedData;
+
+    const workoutPlan = await prisma.workoutPlan.findFirst({
+      where: {
+        id: workoutPlanId,
+        userId,
+      },
+    });
+
+    if (!workoutPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workout plan not found',
+      });
+    }
+
+    const scheduledWorkout = await prisma.scheduledWorkout.create({
+      data: {
+        userId,
+        workoutPlanId,
+        scheduledDate: new Date(scheduledDate),
+        scheduledTime,
+        status: 'PENDING',
+      },
+      include: {
+        workoutPlan: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Workout scheduled successfully',
+      data: {
+        scheduledWorkout,
+      },
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const formattedErrors = error.issues.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: formattedErrors,
+      });
+    }
+
+    console.error('Create scheduled workout error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import workoutRoutes from './routes/workoutRoutes.js';
+import scheduleRoutes from './routes/scheduleRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,6 +14,7 @@ app.use(express.json());
 // routes
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/workouts', workoutRoutes);
+app.use('/api/v1/schedules', scheduleRoutes);
 
 // 404 handler
 app.use((req, res) => {
