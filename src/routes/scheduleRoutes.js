@@ -1,16 +1,18 @@
 import express from 'express';
 import {
-  createScheduleWorkout,
+  createScheduledWorkout,
   getScheduledWorkoutById,
   getScheduledWorkouts,
+  updateScheduledWorkout,
 } from '../controllers/scheduleController.js';
 import { authenticate } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 router.use(authenticate);
 
-router.post('/', createScheduleWorkout);
+router.post('/', createScheduledWorkout);
 router.get('/', getScheduledWorkouts);
 router.get('/:id', getScheduledWorkoutById);
+router.put('/:id', updateScheduledWorkout);
 
 export default router;

@@ -1,11 +1,14 @@
 import { ZodError } from 'zod';
 import prisma from '../config/prisma.js';
-import { createScheduleWorkoutSchema } from '../schemas/scheduleSchemas.js';
+import {
+  createScheduledWorkoutSchema,
+  updateScheduledWorkoutSchema,
+} from '../schemas/scheduleSchemas.js';
 
-export const createScheduleWorkout = async (req, res) => {
+export const createScheduledWorkout = async (req, res) => {
   try {
     const userId = req.user.id;
-    const validatedData = createScheduleWorkoutSchema.parse(req.body);
+    const validatedData = createScheduledWorkoutSchema.parse(req.body);
     const { workoutPlanId, scheduledDate, scheduledTime } = validatedData;
 
     const workoutPlan = await prisma.workoutPlan.findFirst({
@@ -175,6 +178,83 @@ export const getScheduledWorkoutById = async (req, res) => {
     });
   } catch (error) {
     console.error('Get scheduled workout by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const updateScheduledWorkout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const validatedData = updateScheduledWorkoutSchema.parse(req.body);
+
+    const existingScheduledWorkoutPlan =
+      await prisma.scheduledWorkout.findFirst({
+        where: {
+          userId,
+          id,
+        },
+      });
+
+    if (!existingScheduledWorkoutPlan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scheduled workout not found',
+      });
+    }
+
+    const updateData = {};
+    if (validatedData.scheduledDate !== undefined) {
+      updateData.scheduledDate = new Date(validatedData.scheduledDate);
+    }
+    if (validatedData.scheduledTime !== undefined) {
+      updateData.scheduledTime = validatedData.scheduledTime;
+    }
+    if (validatedData.status !== undefined) {
+      updateData.status = validatedData.status;
+    }
+
+    const updatedScheduledWorkoutPlan = await prisma.scheduledWorkout.update({
+      where: {
+        id,
+      },
+      data: updateData,
+      include: {
+        workoutPlan: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Scheduled workout updated successfully',
+      data: {
+        scheduledWorkout: updatedScheduledWorkoutPlan,
+      },
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const formattedErrors = error.issues.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: formattedErrors,
+      });
+    }
+
+    console.error('Update scheduled workout error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
