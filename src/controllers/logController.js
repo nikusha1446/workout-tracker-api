@@ -230,3 +230,68 @@ export const getWorkoutLogs = async (req, res) => {
     });
   }
 };
+
+export const getWorkoutLogById = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const workoutLog = await prisma.workoutLog.findFirst({
+      where: {
+        userId,
+        id,
+      },
+      include: {
+        scheduledWorkout: {
+          select: {
+            id: true,
+            scheduledDate: true,
+            scheduledTime: true,
+            status: true,
+          },
+        },
+        workoutPlan: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        exerciseLogs: {
+          include: {
+            exercise: {
+              select: {
+                id: true,
+                name: true,
+                description: true,
+                category: true,
+                muscleGroup: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!workoutLog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workout log not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workoutLog,
+      },
+    });
+  } catch (error) {
+    console.error('Get workout log by ID error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
