@@ -163,3 +163,70 @@ export const createWorkoutLog = async (req, res) => {
     });
   }
 };
+
+export const getWorkoutLogs = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { startDate, endDate, workoutPlanId } = req.query;
+
+    const where = { userId };
+
+    if (workoutPlanId) {
+      where.workoutPlanId = workoutPlanId;
+    }
+
+    if (startDate || endDate) {
+      where.completedAt = {};
+
+      if (startDate) {
+        where.completedAt.gte = new Date(startDate);
+      }
+
+      if (endDate) {
+        where.completedAt.lte = new Date(endDate);
+      }
+    }
+
+    const workoutLogs = await prisma.workoutLog.findMany({
+      where,
+      include: {
+        workoutPlan: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        exerciseLogs: {
+          include: {
+            exercise: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                muscleGroup: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        completedAt: 'desc',
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        workoutLogs,
+        count: workoutLogs.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get workout logs error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
