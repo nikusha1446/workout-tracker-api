@@ -4,6 +4,7 @@ import authRoutes from './routes/authRoutes.js';
 import workoutRoutes from './routes/workoutRoutes.js';
 import scheduleRoutes from './routes/scheduleRoutes.js';
 import logRoutes from './routes/logRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/workouts', workoutRoutes);
 app.use('/api/v1/schedules', scheduleRoutes);
 app.use('/api/v1/logs', logRoutes);
+app.use('/api/v1/reports', reportRoutes);
 
 // 404 handler
 app.use((req, res) => {
