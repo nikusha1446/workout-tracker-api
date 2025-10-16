@@ -442,3 +442,42 @@ export const updateWorkoutLog = async (req, res) => {
     });
   }
 };
+
+export const deleteWorkoutLog = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const existingWorkoutLog = await prisma.workoutLog.findFirst({
+      where: {
+        userId,
+        id,
+      },
+    });
+
+    if (!existingWorkoutLog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workout log not found',
+      });
+    }
+
+    await prisma.workoutLog.delete({
+      where: {
+        id,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Workout log deleted successfully',
+    });
+  } catch (error) {
+    console.error('Delete workout log error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};

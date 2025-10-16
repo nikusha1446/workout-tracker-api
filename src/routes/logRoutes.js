@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   createWorkoutLog,
+  deleteWorkoutLog,
   getWorkoutLogById,
   getWorkoutLogs,
   updateWorkoutLog,
@@ -14,5 +15,6 @@ router.post('/', createWorkoutLog);
 router.get('/', getWorkoutLogs);
 router.get('/:id', getWorkoutLogById);
 router.put('/:id', updateWorkoutLog);
+router.delete('/:id', deleteWorkoutLog);
 
 export default router;
