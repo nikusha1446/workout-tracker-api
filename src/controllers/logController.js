@@ -1,6 +1,9 @@
 import { ZodError } from 'zod';
 import prisma from '../config/prisma.js';
-import { createWorkoutLogSchema } from '../schemas/logSchemas.js';
+import {
+  createWorkoutLogSchema,
+  updateWorkoutLogSchema,
+} from '../schemas/logSchemas.js';
 
 export const createWorkoutLog = async (req, res) => {
   try {
@@ -289,6 +292,150 @@ export const getWorkoutLogById = async (req, res) => {
   } catch (error) {
     console.error('Get workout log by ID error:', error);
 
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+export const updateWorkoutLog = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const validatedData = updateWorkoutLogSchema.parse(req.body);
+
+    const existingWorkoutLog = await prisma.workoutLog.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+
+    if (!existingWorkoutLog) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workout log not found',
+      });
+    }
+
+    if (validatedData.exercises) {
+      const exerciseIds = validatedData.exercises.map((ex) => ex.exerciseId);
+      const existingExercises = await prisma.exercise.findMany({
+        where: {
+          id: {
+            in: exerciseIds,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      const existingExerciseIds = existingExercises.map((ex) => ex.id);
+      const invalidExerciseIds = exerciseIds.filter(
+        (id) => !existingExerciseIds.includes(id)
+      );
+
+      if (invalidExerciseIds.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid exercise IDs',
+          errors: invalidExerciseIds.map((id) => ({
+            field: 'exerciseId',
+            message: `Exercise with ID ${id} does not exist`,
+          })),
+        });
+      }
+    }
+
+    const updateData = {};
+    if (validatedData.completedAt !== undefined) {
+      updateData.completedAt = new Date(validatedData.completedAt);
+    }
+    if (validatedData.duration !== undefined) {
+      updateData.duration = validatedData.duration;
+    }
+    if (validatedData.notes !== undefined) {
+      updateData.notes = validatedData.notes;
+    }
+
+    if (validatedData.exercises) {
+      await prisma.exerciseLog.deleteMany({
+        where: {
+          workoutLogId: id,
+        },
+      });
+
+      updateData.exerciseLogs = {
+        create: validatedData.exercises.map((ex) => ({
+          exerciseId: ex.exerciseId,
+          sets: ex.sets,
+          reps: ex.reps,
+          weight: ex.weight,
+          duration: ex.duration,
+          notes: ex.notes,
+        })),
+      };
+    }
+
+    const updatedWorkoutLog = await prisma.workoutLog.update({
+      where: {
+        id,
+      },
+      data: updateData,
+      include: {
+        scheduledWorkout: {
+          select: {
+            id: true,
+            scheduledDate: true,
+            scheduledTime: true,
+          },
+        },
+        workoutPlan: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+        exerciseLogs: {
+          include: {
+            exercise: {
+              select: {
+                id: true,
+                name: true,
+                category: true,
+                muscleGroup: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Workout log updated successfully',
+      data: {
+        workoutLog: updatedWorkoutLog,
+      },
+    });
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const formattedErrors = error.issues.map((err) => ({
+        field: err.path.join('.'),
+        message: err.message,
+      }));
+
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: formattedErrors,
+      });
+    }
+
+    console.error('Update workout log error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',

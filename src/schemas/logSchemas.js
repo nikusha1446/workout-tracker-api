@@ -55,3 +55,25 @@ export const createWorkoutLogSchema = z
     message: 'Either scheduledWorkoutId or workoutPlanId must be provided',
     path: ['scheduledWorkoutId'],
   });
+
+export const updateWorkoutLogSchema = z.object({
+  completedAt: z.iso
+    .datetime('Invalid date format. Use ISO 8601 format')
+    .optional(),
+  duration: z
+    .number()
+    .int()
+    .positive('Duration must be a positive number')
+    .optional()
+    .nullable(),
+  notes: z
+    .string()
+    .max(1000, 'Notes must not exceed 1000 characters')
+    .optional()
+    .nullable(),
+  exercises: z
+    .array(exerciseLogSchema)
+    .min(1, 'At least one exercise is required')
+    .max(30, 'Maximum 30 exercises per workout log')
+    .optional(),
+});
